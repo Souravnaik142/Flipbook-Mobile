@@ -1,9 +1,10 @@
-// ✅ FlipBook By NSA — Full Version for GitHub Pages
-// PDF.js Worker
+// FlipBook By NSA — Clean final (no grid, no progress, no back-to-top)
+
+// pdf.js worker (safe to set early)
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
 
-// 🔹 Firebase Config
+// Firebase config (user provided)
 const firebaseConfig = {
   apiKey: "AIzaSyBzEhgiJXph4CbXBBwxcNU3MjDCHc0rWZo",
   authDomain: "flipbook-7540.firebaseapp.com",
@@ -17,7 +18,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-// 🔹 Elements
+// Elements
 const loginOverlay = document.getElementById("loginOverlay");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
@@ -31,17 +32,14 @@ const logoutBtn = document.getElementById("logoutBtn");
 const flipSound = document.getElementById("flipSound");
 const pageInfo = document.getElementById("pageInfo");
 const flipbookEl = document.getElementById("flipbook");
-const gridToggleBtn = document.getElementById("gridToggle");
-const backToTopBtn = document.getElementById("backToTop");
 
 let pageFlip = null;
 let pdfDoc = null;
 let pageCount = 0;
 let soundOn = true;
-let pagesCache = [];
-let gridMode = false;
+let pagesCache = []; // data urls for pages
 
-// ✅ AUTH HANDLERS
+// Auth handlers
 loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -50,7 +48,6 @@ loginBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
-
 signupBtn.addEventListener("click", async () => {
   try {
     await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -59,7 +56,6 @@ signupBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
-
 logoutBtn.addEventListener("click", async () => {
   await auth.signOut();
   location.reload();
@@ -78,71 +74,75 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// ✅ LOAD PDF
+// Initialize PDF and render pages
 async function initializeFlipbook() {
   try {
     showLoader("Preparing book...");
-    pdfDoc = await pdfjsLib.getDocument("yourcourse.pdf").promise;
+    const loadingTask = pdfjsLib.getDocument("yourcourse.pdf");
+    pdfDoc = await loadingTask.promise;
     pageCount = pdfDoc.numPages;
     pagesCache = [];
+
     flipbookEl.innerHTML = "";
 
+    // render pages to dataURLs (keeps memory but avoids re-rendering)
     for (let i = 1; i <= pageCount; i++) {
       loaderText.textContent = `Rendering page ${i} of ${pageCount}...`;
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.5 : 1.2 });
+      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.6 : 1.2 });
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       await page.render({ canvasContext: ctx, viewport }).promise;
-      const imgSrc = canvas.toDataURL("image/jpeg", 0.9);
-      pagesCache.push(imgSrc);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      pagesCache.push(dataUrl);
 
-      const div = document.createElement("div");
-      div.className = "page";
+      const pageDiv = document.createElement("div");
+      pageDiv.className = "page";
       const img = document.createElement("img");
-      img.src = imgSrc;
       img.className = "pdf-page";
-      div.appendChild(img);
-      flipbookEl.appendChild(div);
+      img.src = dataUrl;
+      img.alt = `Page ${i}`;
+      pageDiv.appendChild(img);
+      flipbookEl.appendChild(pageDiv);
     }
 
     await initPageFlip();
     hideLoader();
   } catch (err) {
     hideLoader();
-    alert("Error loading PDF: " + err.message);
+    console.error(err);
+    alert("Error loading PDF: " + (err.message || err));
   }
 }
 
-// ✅ INITIALIZE PAGE FLIP
+// init PageFlip with ratio-based sizing and mobile single-page enforced
 async function initPageFlip() {
   if (pageFlip && typeof pageFlip.destroy === "function") {
-    try {
-      pageFlip.destroy();
-    } catch {}
+    try { pageFlip.destroy(); } catch (e) {}
+    pageFlip = null;
   }
 
+  // detect page ratio
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
-  const ratio = vp.height / vp.width;
+  const pageRatio = vp.height / vp.width;
 
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
-  const isPhone = screenW < 900;
+  const isPhone = screenW < 900; // threshold for single-page
 
-  let width = screenW * 0.95;
-  let height = width * ratio;
-
-  if (height > screenH * 0.9) {
-    height = screenH * 0.9;
-    width = height / ratio;
+  let bookWidth = screenW * 0.95;
+  let bookHeight = bookWidth * pageRatio;
+  if (bookHeight > screenH * 0.9) {
+    bookHeight = screenH * 0.9;
+    bookWidth = bookHeight / pageRatio;
   }
 
   pageFlip = new St.PageFlip(flipbookEl, {
-    width: Math.round(width),
-    height: Math.round(height),
+    width: Math.round(bookWidth),
+    height: Math.round(bookHeight),
     size: "stretch",
     minWidth: 200,
     maxWidth: 1600,
@@ -151,8 +151,8 @@ async function initPageFlip() {
     showCover: true,
     mobileScrollSupport: false,
     maxShadowOpacity: 0.45,
-    usePortrait: true,
-    mode: isPhone ? "portrait" : "book",
+    usePortrait: true,           // ensures internal layout is portrait-friendly
+    mode: isPhone ? "portrait" : "book", // single page on phones
   });
 
   pageFlip.loadFromHTML(document.querySelectorAll(".page"));
@@ -167,191 +167,63 @@ async function initPageFlip() {
   addSwipeGestures(pageFlip);
 }
 
-// ✅ GRID VIEW (fade-in)
-gridToggleBtn.addEventListener("click", async () => {
-  if (!pdfDoc) return;
-
-  if (!gridMode) {
-    gridMode = true;
-
-    try {
-      if (pageFlip) {
-        pageFlip.destroy();
-        pageFlip = null;
-      }
-    } catch {}
-
-    flipbookEl.classList.add("grid-view");
-    flipbookEl.innerHTML = "";
-    flipbookEl.style.opacity = "0";
-    setTimeout(() => (flipbookEl.style.opacity = "1"), 50);
-
-    for (let i = 0; i < pagesCache.length; i++) {
-      const src = pagesCache[i];
-      const item = document.createElement("div");
-      item.className = "grid-item fade-in";
-
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = `Page ${i + 1}`;
-      const label = document.createElement("p");
-      label.textContent = `Page ${i + 1}`;
-
-      item.appendChild(img);
-      item.appendChild(label);
-      item.addEventListener("click", async () => {
-        await closeGridView(i);
-      });
-
-      flipbookEl.appendChild(item);
-    }
-
-    gridToggleBtn.textContent = "📖 Flip";
-  } else {
-    await closeGridView();
-  }
-});
-
-async function closeGridView(pageToOpen = 0) {
-  gridMode = false;
-  flipbookEl.classList.remove("grid-view");
-  flipbookEl.innerHTML = "";
-  flipbookEl.style.opacity = "1";
-
-  for (let src of pagesCache) {
-    const div = document.createElement("div");
-    div.className = "page";
-    const img = document.createElement("img");
-    img.src = src;
-    img.className = "pdf-page";
-    div.appendChild(img);
-    flipbookEl.appendChild(div);
-  }
-
-  await initPageFlip();
-
-  if (pageToOpen > 0) {
-    setTimeout(() => {
-      try {
-        pageFlip.turnToPage(pageToOpen);
-      } catch {}
-    }, 350);
-  }
-
-  gridToggleBtn.textContent = "🗂️ Grid";
-}
-
-// ✅ BACK TO TOP BUTTON (auto-hide)
-let lastScrollY = 0;
-let scrollTimeout;
-
-flipbookEl.addEventListener("scroll", () => {
-  if (!gridMode) {
-    backToTopBtn.style.display = "none";
-    return;
-  }
-
-  const currentScroll = flipbookEl.scrollTop;
-
-  if (currentScroll > 300) {
-    backToTopBtn.style.display = "flex";
-  } else {
-    backToTopBtn.style.display = "none";
-  }
-
-  if (currentScroll > lastScrollY) {
-    backToTopBtn.classList.add("hide");
-  } else {
-    backToTopBtn.classList.remove("hide");
-  }
-
-  lastScrollY = currentScroll;
-
-  clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(() => {
-    if (gridMode && flipbookEl.scrollTop > 300) {
-      backToTopBtn.classList.remove("hide");
-    }
-  }, 500);
-});
-
-backToTopBtn.addEventListener("click", () => {
-  flipbookEl.scrollTo({ top: 0, behavior: "smooth" });
-});
-
-// ✅ CONTROLS
 function bindControls() {
-  document.getElementById("nextPage").onclick = () => pageFlip?.flipNext();
-  document.getElementById("prevPage").onclick = () => pageFlip?.flipPrev();
-
+  document.getElementById("nextPage").onclick = () => pageFlip && pageFlip.flipNext();
+  document.getElementById("prevPage").onclick = () => pageFlip && pageFlip.flipPrev();
   document.getElementById("fullscreen").onclick = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
     else document.exitFullscreen();
   };
-
   document.getElementById("soundToggle").onclick = () => {
     soundOn = !soundOn;
     document.getElementById("soundToggle").textContent = soundOn ? "🔊" : "🔇";
   };
 }
 
-// ✅ SWIPE
-function addSwipeGestures(flip) {
+function addSwipeGestures(flipInst) {
   let startX = 0, startY = 0, startTime = 0;
-  flipbookEl.addEventListener("touchstart", (e) => {
+  flipbookEl.addEventListener('touchstart', (e) => {
     const t = e.changedTouches[0];
-    startX = t.clientX;
-    startY = t.clientY;
-    startTime = Date.now();
+    startX = t.clientX; startY = t.clientY; startTime = Date.now();
   }, { passive: true });
 
-  flipbookEl.addEventListener("touchend", (e) => {
+  flipbookEl.addEventListener('touchend', (e) => {
     const t = e.changedTouches[0];
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
+    const dx = t.clientX - startX; const dy = t.clientY - startY;
     const dt = Date.now() - startTime;
     if (Math.abs(dx) > 50 && Math.abs(dy) < 80 && dt < 700) {
-      if (dx > 0) flip.flipPrev();
-      else flip.flipNext();
-      if (soundOn) flipSound.play().catch(() => {});
+      if (dx > 0) flipInst.flipPrev();
+      else flipInst.flipNext();
+      if (soundOn) flipSound.play().catch(()=>{});
     }
   }, { passive: true });
 }
 
-// ✅ HELPERS
-function showLoader(msg) {
-  loader.classList.remove("hidden");
-  loaderText.textContent = msg || "Loading...";
+function showLoader(text) {
+  loader.classList.remove('hidden');
+  const lt = document.getElementById('loaderText');
+  if (lt) lt.textContent = text || 'Loading...';
 }
 function hideLoader() {
-  loader.classList.add("hidden");
+  loader.classList.add('hidden');
 }
 
-// ✅ RESIZE
+// handle resize: recompute book size & force portrait on phones
 window.addEventListener("resize", async () => {
-  if (!pdfDoc || gridMode || !pageFlip) return;
+  if (!pdfDoc || !pageFlip) return;
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
   const ratio = vp.height / vp.width;
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
+  const screenW = window.innerWidth; const screenH = window.innerHeight;
   const isPhone = screenW < 900;
-  let width = screenW * 0.95;
-  let height = width * ratio;
-  if (height > screenH * 0.9) {
-    height = screenH * 0.9;
-    width = height / ratio;
-  }
-  pageFlip.update({
-    width: Math.round(width),
-    height: Math.round(height),
-    mode: isPhone ? "portrait" : "book",
-  });
+  let width = screenW * 0.95; let height = width * ratio;
+  if (height > screenH * 0.9) { height = screenH * 0.9; width = height / ratio; }
+  pageFlip.update({ width: Math.round(width), height: Math.round(height), mode: isPhone ? 'portrait' : 'book' });
 });
 
-// ✅ KEYBOARD
-document.addEventListener("keydown", (e) => {
+// keyboard navigation
+document.addEventListener('keydown', (e) => {
   if (!pageFlip) return;
-  if (e.key === "ArrowLeft") pageFlip.flipPrev();
-  if (e.key === "ArrowRight") pageFlip.flipNext();
+  if (e.key === 'ArrowLeft') pageFlip.flipPrev();
+  if (e.key === 'ArrowRight') pageFlip.flipNext();
 });
