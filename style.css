@@ -1,114 +1,116 @@
+/* General body styling */
 body {
   margin: 0;
-  background: #111;
-  color: white;
-  font-family: 'Segoe UI', sans-serif;
+  padding: 0;
+  font-family: sans-serif;
+  background: #f2f2f2; /* soft gray so book pops out */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
   overflow: hidden;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #00cc88;
-  padding: 8px 12px;
-  color: #111;
-  font-weight: bold;
-}
-
-.controls button {
-  margin: 0 4px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 6px;
-  background: #111;
-  color: white;
-  cursor: pointer;
-}
-.controls button:hover {
-  background: #333;
-}
-
-.flipbook {
+/* Flipbook container */
+#flipbook {
   width: 100%;
-  height: calc(100vh - 48px);
+  height: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
   margin: auto;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  position: relative;
 }
-.flipbook.transitioning {
-  opacity: 0;
-  transform: scale(0.97);
+
+/* Flipbook wrapper (handles double pages) */
+.stf__wrapper {
+  gap: 0 !important; /* remove gap between pages */
+  position: relative;
+  background: #fff;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Individual page */
+.stf__page {
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.25); /* outer shadow for depth */
+  border-radius: 4px;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Center gutter line */
+.stf__wrapper:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 5;
   pointer-events: none;
 }
 
-.page {
-  background: white;
-  overflow: hidden;
+/* Inner shadow (page curl effect) */
+.stf__page:nth-child(odd)::after,
+.stf__page:nth-child(even)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  pointer-events: none;
+  z-index: 3;
 }
-.page img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+
+.stf__page:nth-child(odd)::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(0,0,0,0.15), transparent);
 }
-.page-placeholder {
-  text-align: center;
-  color: #888;
-  padding: 40% 0;
+
+.stf__page:nth-child(even)::after {
+  left: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
+}
+
+/* Controls (if you add navigation buttons later) */
+.controls {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  background: #00cc88;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 14px;
 }
 
-/* Loader */
-.loader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #111;
-  color: #00cc88;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
+button:hover {
+  background: #009966;
 }
-.loader.hidden { display: none; }
 
-/* Login overlay */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 200;
-}
-.authBox {
-  background: #222;
-  padding: 30px;
-  border-radius: 10px;
-  text-align: center;
-}
-.authBox input {
-  display: block;
-  width: 220px;
-  margin: 10px auto;
-  padding: 8px;
-  border: none;
-  border-radius: 6px;
-}
-.authBox button {
-  margin: 6px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  background: #00cc88;
-  color: #111;
-  cursor: pointer;
-}
-.authBox button:hover {
-  background: #00e09f;
+/* Mobile responsive - single page view */
+@media (max-width: 768px) {
+  #flipbook {
+    max-width: 100%;
+    max-height: 100vh;
+  }
+
+  .stf__wrapper:after {
+    display: none; /* hide gutter line in single page */
+  }
+
+  .stf__page::after {
+    display: none; /* hide inner shadows in single page */
+  }
 }
