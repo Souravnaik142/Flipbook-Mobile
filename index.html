@@ -1,50 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>FlipBook</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>FlipBook By NSA</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- PDF.js -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+
+  <!-- PageFlip -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+
+  <!-- Firebase -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <script defer src="script.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(() => console.log('SW registered'))
+          .catch(() => {/* failed */});
+      });
+    }
+  </script>
 </head>
 <body>
-  <!-- Loader -->
-  <div id="loader" class="loader-overlay">
-    <div class="spinner"></div>
-    <div id="loaderText">Loading...</div>
-  </div>
-
-  <!-- Login -->
-  <div id="loginOverlay" class="login-overlay">
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay" role="dialog" aria-modal="true">
     <div class="login-box">
-      <h2>🔒 Login to FlipBook</h2>
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="password" placeholder="Password">
+      <h2>Login / Sign Up</h2>
+      <input id="email" type="email" placeholder="Email" aria-label="Email" />
+      <input id="password" type="password" placeholder="Password" aria-label="Password" />
       <div class="btn-row">
         <button id="loginBtn">Login</button>
         <button id="signupBtn">Sign Up</button>
       </div>
-      <div id="authMsg" class="auth-msg"></div>
+      <p id="authMessage" class="auth-msg" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay hidden" aria-hidden="true">
+    <div class="loader-content">
+      <div class="spinner" role="status" aria-hidden="true"></div>
+      <div id="loaderText">Loading your book...</div>
     </div>
   </div>
 
   <!-- Navbar -->
-  <div class="navbar">
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-controls">
-      <button id="prevPage">⬅</button>
-      <button id="nextPage">➡</button>
-      <button id="fullscreenBtn">⛶</button>
-      <button id="soundBtn">🔊</button>
+      <button id="prevPage" aria-label="Previous page">⬅ Prev</button>
+      <span id="pageInfo" aria-live="polite">— / —</span>
+      <button id="nextPage" aria-label="Next page">Next ➡</button>
     </div>
+
     <div class="nav-options">
-      <span id="welcomeUser"></span>
-      <button id="logoutBtn">Logout</button>
+      <button id="fullscreen" aria-label="Toggle fullscreen">⛶</button>
+      <button id="soundToggle" aria-label="Toggle sound">🔊</button>
+      <span id="welcomeUser" class="welcome-user" aria-hidden="true"></span>
+      <button id="logoutBtn" style="display:none;">Logout</button>
     </div>
-  </div>
+  </nav>
 
-  <!-- Flipbook -->
-  <div id="flipbook" class="flipbook"></div>
+  <!-- Flipbook container -->
+  <main id="flipbook" class="flipbook" role="main" aria-label="Flipbook container"></main>
 
-  <script src="script.js"></script>
+  <!-- Flip sound -->
+  <audio id="flipSound" src="page-flip.mp3" preload="auto"></audio>
 </body>
 </html>
