@@ -1,5 +1,9 @@
-// FlipBook By NSA — FINAL SCRIPT
-// Firebase configuration
+// ✅ FlipBook By NSA — Full Version for GitHub Pages
+// PDF.js Worker
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
+
+// 🔹 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBzEhgiJXph4CbXBBwxcNU3MjDCHc0rWZo",
   authDomain: "flipbook-7540.firebaseapp.com",
@@ -13,7 +17,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-// Elements
+// 🔹 Elements
 const loginOverlay = document.getElementById("loginOverlay");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
@@ -28,6 +32,7 @@ const flipSound = document.getElementById("flipSound");
 const pageInfo = document.getElementById("pageInfo");
 const flipbookEl = document.getElementById("flipbook");
 const gridToggleBtn = document.getElementById("gridToggle");
+const backToTopBtn = document.getElementById("backToTop");
 
 let pageFlip = null;
 let pdfDoc = null;
@@ -36,7 +41,7 @@ let soundOn = true;
 let pagesCache = [];
 let gridMode = false;
 
-// ---------------- AUTH ----------------
+// ✅ AUTH HANDLERS
 loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -73,17 +78,13 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// ---------------- LOAD PDF ----------------
+// ✅ LOAD PDF
 async function initializeFlipbook() {
   try {
     showLoader("Preparing book...");
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
-
     pdfDoc = await pdfjsLib.getDocument("yourcourse.pdf").promise;
     pageCount = pdfDoc.numPages;
     pagesCache = [];
-
     flipbookEl.innerHTML = "";
 
     for (let i = 1; i <= pageCount; i++) {
@@ -95,7 +96,6 @@ async function initializeFlipbook() {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       await page.render({ canvasContext: ctx, viewport }).promise;
-
       const imgSrc = canvas.toDataURL("image/jpeg", 0.9);
       pagesCache.push(imgSrc);
 
@@ -116,7 +116,7 @@ async function initializeFlipbook() {
   }
 }
 
-// ---------------- PAGEFLIP INIT ----------------
+// ✅ INITIALIZE PAGE FLIP
 async function initPageFlip() {
   if (pageFlip && typeof pageFlip.destroy === "function") {
     try {
@@ -151,8 +151,8 @@ async function initPageFlip() {
     showCover: true,
     mobileScrollSupport: false,
     maxShadowOpacity: 0.45,
-    usePortrait: true, // ✅ Always portrait layout internally
-    mode: isPhone ? "portrait" : "book", // ✅ Single page on phones
+    usePortrait: true,
+    mode: isPhone ? "portrait" : "book",
   });
 
   pageFlip.loadFromHTML(document.querySelectorAll(".page"));
@@ -167,39 +167,48 @@ async function initPageFlip() {
   addSwipeGestures(pageFlip);
 }
 
-// ---------------- GRID VIEW (FIXED) ----------------
+// ✅ GRID VIEW (fade-in)
 gridToggleBtn.addEventListener("click", async () => {
   if (!pdfDoc) return;
 
   if (!gridMode) {
-    // Enter grid view
     gridMode = true;
-    if (pageFlip && typeof pageFlip.destroy === "function") {
-      try {
+
+    try {
+      if (pageFlip) {
         pageFlip.destroy();
-      } catch {}
-      pageFlip = null;
-    }
+        pageFlip = null;
+      }
+    } catch {}
 
     flipbookEl.classList.add("grid-view");
     flipbookEl.innerHTML = "";
+    flipbookEl.style.opacity = "0";
+    setTimeout(() => (flipbookEl.style.opacity = "1"), 50);
 
-    pagesCache.forEach((src, i) => {
+    for (let i = 0; i < pagesCache.length; i++) {
+      const src = pagesCache[i];
       const item = document.createElement("div");
-      item.className = "grid-item";
-      item.innerHTML = `
-        <img src="${src}" alt="Page ${i + 1}">
-        <p>Page ${i + 1}</p>
-      `;
-      item.addEventListener("click", () => {
-        closeGridView(i);
+      item.className = "grid-item fade-in";
+
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = `Page ${i + 1}`;
+      const label = document.createElement("p");
+      label.textContent = `Page ${i + 1}`;
+
+      item.appendChild(img);
+      item.appendChild(label);
+      item.addEventListener("click", async () => {
+        await closeGridView(i);
       });
+
       flipbookEl.appendChild(item);
-    });
+    }
 
     gridToggleBtn.textContent = "📖 Flip";
   } else {
-    closeGridView();
+    await closeGridView();
   }
 });
 
@@ -207,8 +216,9 @@ async function closeGridView(pageToOpen = 0) {
   gridMode = false;
   flipbookEl.classList.remove("grid-view");
   flipbookEl.innerHTML = "";
+  flipbookEl.style.opacity = "1";
 
-  pagesCache.forEach((src) => {
+  for (let src of pagesCache) {
     const div = document.createElement("div");
     div.className = "page";
     const img = document.createElement("img");
@@ -216,18 +226,60 @@ async function closeGridView(pageToOpen = 0) {
     img.className = "pdf-page";
     div.appendChild(img);
     flipbookEl.appendChild(div);
-  });
+  }
 
   await initPageFlip();
 
   if (pageToOpen > 0) {
-    setTimeout(() => pageFlip.turnToPage(pageToOpen), 300);
+    setTimeout(() => {
+      try {
+        pageFlip.turnToPage(pageToOpen);
+      } catch {}
+    }, 350);
   }
 
   gridToggleBtn.textContent = "🗂️ Grid";
 }
 
-// ---------------- CONTROLS ----------------
+// ✅ BACK TO TOP BUTTON (auto-hide)
+let lastScrollY = 0;
+let scrollTimeout;
+
+flipbookEl.addEventListener("scroll", () => {
+  if (!gridMode) {
+    backToTopBtn.style.display = "none";
+    return;
+  }
+
+  const currentScroll = flipbookEl.scrollTop;
+
+  if (currentScroll > 300) {
+    backToTopBtn.style.display = "flex";
+  } else {
+    backToTopBtn.style.display = "none";
+  }
+
+  if (currentScroll > lastScrollY) {
+    backToTopBtn.classList.add("hide");
+  } else {
+    backToTopBtn.classList.remove("hide");
+  }
+
+  lastScrollY = currentScroll;
+
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if (gridMode && flipbookEl.scrollTop > 300) {
+      backToTopBtn.classList.remove("hide");
+    }
+  }, 500);
+});
+
+backToTopBtn.addEventListener("click", () => {
+  flipbookEl.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// ✅ CONTROLS
 function bindControls() {
   document.getElementById("nextPage").onclick = () => pageFlip?.flipNext();
   document.getElementById("prevPage").onclick = () => pageFlip?.flipPrev();
@@ -243,7 +295,7 @@ function bindControls() {
   };
 }
 
-// ---------------- SWIPE ----------------
+// ✅ SWIPE
 function addSwipeGestures(flip) {
   let startX = 0, startY = 0, startTime = 0;
   flipbookEl.addEventListener("touchstart", (e) => {
@@ -266,7 +318,7 @@ function addSwipeGestures(flip) {
   }, { passive: true });
 }
 
-// ---------------- HELPERS ----------------
+// ✅ HELPERS
 function showLoader(msg) {
   loader.classList.remove("hidden");
   loaderText.textContent = msg || "Loading...";
@@ -275,26 +327,21 @@ function hideLoader() {
   loader.classList.add("hidden");
 }
 
-// ---------------- RESIZE ----------------
+// ✅ RESIZE
 window.addEventListener("resize", async () => {
   if (!pdfDoc || gridMode || !pageFlip) return;
-
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
   const ratio = vp.height / vp.width;
-
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
   const isPhone = screenW < 900;
-
   let width = screenW * 0.95;
   let height = width * ratio;
-
   if (height > screenH * 0.9) {
     height = screenH * 0.9;
     width = height / ratio;
   }
-
   pageFlip.update({
     width: Math.round(width),
     height: Math.round(height),
@@ -302,7 +349,7 @@ window.addEventListener("resize", async () => {
   });
 });
 
-// ---------------- KEYBOARD ----------------
+// ✅ KEYBOARD
 document.addEventListener("keydown", (e) => {
   if (!pageFlip) return;
   if (e.key === "ArrowLeft") pageFlip.flipPrev();
