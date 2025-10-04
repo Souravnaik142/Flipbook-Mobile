@@ -1,5 +1,5 @@
-// script.js - FlipBook By NSA (final)
-// Firebase config (as provided)
+// FlipBook By NSA — FINAL SCRIPT
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBzEhgiJXph4CbXBBwxcNU3MjDCHc0rWZo",
   authDomain: "flipbook-7540.firebaseapp.com",
@@ -33,10 +33,10 @@ let pageFlip = null;
 let pdfDoc = null;
 let pageCount = 0;
 let soundOn = true;
-let pagesCache = []; // dataURL strings
+let pagesCache = [];
 let gridMode = false;
 
-// Auth handlers
+// ---------------- AUTH ----------------
 loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -45,6 +45,7 @@ loginBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
+
 signupBtn.addEventListener("click", async () => {
   try {
     await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -53,12 +54,12 @@ signupBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
+
 logoutBtn.addEventListener("click", async () => {
   await auth.signOut();
   location.reload();
 });
 
-// Auth state
 auth.onAuthStateChanged((user) => {
   if (user) {
     loginOverlay.style.display = "none";
@@ -72,80 +73,76 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// Initialize flipbook
+// ---------------- LOAD PDF ----------------
 async function initializeFlipbook() {
   try {
     showLoader("Preparing book...");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
-    const loadingTask = pdfjsLib.getDocument("yourcourse.pdf");
-    pdfDoc = await loadingTask.promise;
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
+
+    pdfDoc = await pdfjsLib.getDocument("yourcourse.pdf").promise;
     pageCount = pdfDoc.numPages;
     pagesCache = [];
 
-    // Clear container before adding pages
     flipbookEl.innerHTML = "";
 
-    // Render pages to images (dataURLs) and add as .page nodes
     for (let i = 1; i <= pageCount; i++) {
       loaderText.textContent = `Rendering page ${i} of ${pageCount}...`;
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.6 : 1.2 });
+      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.5 : 1.2 });
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       await page.render({ canvasContext: ctx, viewport }).promise;
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-      pagesCache.push(dataUrl);
+
+      const imgSrc = canvas.toDataURL("image/jpeg", 0.9);
+      pagesCache.push(imgSrc);
 
       const div = document.createElement("div");
       div.className = "page";
       const img = document.createElement("img");
-      img.src = dataUrl;
+      img.src = imgSrc;
       img.className = "pdf-page";
-      img.alt = `Page ${i}`;
       div.appendChild(img);
       flipbookEl.appendChild(div);
     }
 
-    // Initialize PageFlip using page ratio (fixes half-page issues)
     await initPageFlip();
     hideLoader();
   } catch (err) {
     hideLoader();
-    console.error(err);
-    alert("Failed to load the PDF: " + (err.message || err));
+    alert("Error loading PDF: " + err.message);
   }
 }
 
-// initPageFlip computes PDF ratio from first page and sizes book accordingly
+// ---------------- PAGEFLIP INIT ----------------
 async function initPageFlip() {
-  // ensure any existing instance destroyed
   if (pageFlip && typeof pageFlip.destroy === "function") {
-    try { pageFlip.destroy(); } catch (e) { /* ignore */ }
-    pageFlip = null;
+    try {
+      pageFlip.destroy();
+    } catch {}
   }
 
-  // compute page aspect ratio using first page
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
-  const pageRatio = vp.height / vp.width;
+  const ratio = vp.height / vp.width;
 
-  // compute book size to fit viewport while preserving ratio
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
-  let bookWidth = screenW * 0.95;
-  let bookHeight = bookWidth * pageRatio;
+  const isPhone = screenW < 900;
 
-  if (bookHeight > screenH * 0.9) {
-    bookHeight = screenH * 0.9;
-    bookWidth = bookHeight / pageRatio;
+  let width = screenW * 0.95;
+  let height = width * ratio;
+
+  if (height > screenH * 0.9) {
+    height = screenH * 0.9;
+    width = height / ratio;
   }
 
-  // create PageFlip
   pageFlip = new St.PageFlip(flipbookEl, {
-    width: Math.round(bookWidth),
-    height: Math.round(bookHeight),
+    width: Math.round(width),
+    height: Math.round(height),
     size: "stretch",
     minWidth: 200,
     maxWidth: 1600,
@@ -154,24 +151,15 @@ async function initPageFlip() {
     showCover: true,
     mobileScrollSupport: false,
     maxShadowOpacity: 0.45,
-    // usePortrait will make it single page on small screens
-    usePortrait: screenW < 1024,
+    usePortrait: true, // ✅ Always portrait layout internally
+    mode: isPhone ? "portrait" : "book", // ✅ Single page on phones
   });
 
-  // load pages
   pageFlip.loadFromHTML(document.querySelectorAll(".page"));
-
-  // mode: book on wide screens, portrait on small
-  if (screenW < 1024) pageFlip.update({ mode: "portrait" });
-  else pageFlip.update({ mode: "book" });
-
-  // show first page in pageInfo
   pageInfo.textContent = `1 / ${pageCount}`;
 
-  // handlers
   pageFlip.on("flip", (e) => {
-    const current = e.data + 1;
-    pageInfo.textContent = `${current} / ${pageCount}`;
+    pageInfo.textContent = `${e.data + 1} / ${pageCount}`;
     if (soundOn) flipSound.play().catch(() => {});
   });
 
@@ -179,145 +167,144 @@ async function initPageFlip() {
   addSwipeGestures(pageFlip);
 }
 
-// Controls binding
+// ---------------- GRID VIEW (FIXED) ----------------
+gridToggleBtn.addEventListener("click", async () => {
+  if (!pdfDoc) return;
+
+  if (!gridMode) {
+    // Enter grid view
+    gridMode = true;
+    if (pageFlip && typeof pageFlip.destroy === "function") {
+      try {
+        pageFlip.destroy();
+      } catch {}
+      pageFlip = null;
+    }
+
+    flipbookEl.classList.add("grid-view");
+    flipbookEl.innerHTML = "";
+
+    pagesCache.forEach((src, i) => {
+      const item = document.createElement("div");
+      item.className = "grid-item";
+      item.innerHTML = `
+        <img src="${src}" alt="Page ${i + 1}">
+        <p>Page ${i + 1}</p>
+      `;
+      item.addEventListener("click", () => {
+        closeGridView(i);
+      });
+      flipbookEl.appendChild(item);
+    });
+
+    gridToggleBtn.textContent = "📖 Flip";
+  } else {
+    closeGridView();
+  }
+});
+
+async function closeGridView(pageToOpen = 0) {
+  gridMode = false;
+  flipbookEl.classList.remove("grid-view");
+  flipbookEl.innerHTML = "";
+
+  pagesCache.forEach((src) => {
+    const div = document.createElement("div");
+    div.className = "page";
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "pdf-page";
+    div.appendChild(img);
+    flipbookEl.appendChild(div);
+  });
+
+  await initPageFlip();
+
+  if (pageToOpen > 0) {
+    setTimeout(() => pageFlip.turnToPage(pageToOpen), 300);
+  }
+
+  gridToggleBtn.textContent = "🗂️ Grid";
+}
+
+// ---------------- CONTROLS ----------------
 function bindControls() {
-  document.getElementById("nextPage").onclick = () => pageFlip && pageFlip.flipNext();
-  document.getElementById("prevPage").onclick = () => pageFlip && pageFlip.flipPrev();
+  document.getElementById("nextPage").onclick = () => pageFlip?.flipNext();
+  document.getElementById("prevPage").onclick = () => pageFlip?.flipPrev();
+
   document.getElementById("fullscreen").onclick = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
     else document.exitFullscreen();
   };
+
   document.getElementById("soundToggle").onclick = () => {
     soundOn = !soundOn;
     document.getElementById("soundToggle").textContent = soundOn ? "🔊" : "🔇";
   };
 }
 
-// Swipe support
-function addSwipeGestures(pageFlipInstance) {
-  const el = flipbookEl;
+// ---------------- SWIPE ----------------
+function addSwipeGestures(flip) {
   let startX = 0, startY = 0, startTime = 0;
-
-  el.addEventListener('touchstart', (e) => {
+  flipbookEl.addEventListener("touchstart", (e) => {
     const t = e.changedTouches[0];
-    startX = t.clientX; startY = t.clientY; startTime = Date.now();
+    startX = t.clientX;
+    startY = t.clientY;
+    startTime = Date.now();
   }, { passive: true });
 
-  el.addEventListener('touchend', (e) => {
+  flipbookEl.addEventListener("touchend", (e) => {
     const t = e.changedTouches[0];
-    const dx = t.clientX - startX, dy = t.clientY - startY;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
     const dt = Date.now() - startTime;
     if (Math.abs(dx) > 50 && Math.abs(dy) < 80 && dt < 700) {
-      if (dx > 0) pageFlipInstance.flipPrev();
-      else pageFlipInstance.flipNext();
-      if (soundOn) flipSound.play().catch(()=>{});
+      if (dx > 0) flip.flipPrev();
+      else flip.flipNext();
+      if (soundOn) flipSound.play().catch(() => {});
     }
   }, { passive: true });
 }
 
-// Grid view toggle (2-per-row). click thumb opens page in flipbook
-gridToggleBtn.addEventListener('click', () => {
-  if (!gridMode) openGridView();
-  else closeGridView();
-});
-
-function openGridView() {
-  if (!pagesCache.length) return;
-  gridMode = true;
-  // destroy pageFlip to avoid conflicts
-  if (pageFlip && typeof pageFlip.destroy === "function") {
-    try { pageFlip.destroy(); } catch(e) {}
-    pageFlip = null;
-  }
-  flipbookEl.classList.add('grid-view');
-  flipbookEl.innerHTML = '';
-  pagesCache.forEach((src, idx) => {
-    const item = document.createElement('div');
-    item.className = 'grid-item';
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = `Page ${idx+1}`;
-    const label = document.createElement('p');
-    label.textContent = `Page ${idx+1}`;
-    item.appendChild(img);
-    item.appendChild(label);
-    item.addEventListener('click', () => {
-      // show flipbook and jump to page
-      closeGridView();
-      // after rebuild, go to page
-      const goTo = idx;
-      // wait for a tick to ensure pageFlip is ready
-      setTimeout(() => {
-        try { pageFlip.turnToPage(goTo); }
-        catch(e) { /* ignore */ }
-      }, 150);
-    });
-    flipbookEl.appendChild(item);
-  });
-  gridToggleBtn.textContent = '📖 Flip';
-  gridToggleBtn.setAttribute('aria-pressed', 'true');
-}
-
-function closeGridView() {
-  gridMode = false;
-  flipbookEl.classList.remove('grid-view');
-  flipbookEl.innerHTML = '';
-  pagesCache.forEach(src => {
-    const div = document.createElement('div');
-    div.className = 'page';
-    const img = document.createElement('img');
-    img.src = src;
-    img.className = 'pdf-page';
-    div.appendChild(img);
-    flipbookEl.appendChild(div);
-  });
-  gridToggleBtn.textContent = '🗂️ Grid';
-  gridToggleBtn.setAttribute('aria-pressed', 'false');
-  // re-init pageflip
-  initPageFlip();
-}
-
-// Loader helpers
-function showLoader(text) {
-  loader.classList.remove('hidden');
-  loaderText.textContent = text || 'Loading...';
+// ---------------- HELPERS ----------------
+function showLoader(msg) {
+  loader.classList.remove("hidden");
+  loaderText.textContent = msg || "Loading...";
 }
 function hideLoader() {
-  loader.classList.add('hidden');
+  loader.classList.add("hidden");
 }
 
-// Resize handling (maintain ratio and mode)
-window.addEventListener('resize', async () => {
-  if (!pdfDoc) return;
-  if (gridMode) return;
-  if (!pageFlip) {
-    // if not inited, just re-init
-    initPageFlip().catch(()=>{});
-    return;
-  }
+// ---------------- RESIZE ----------------
+window.addEventListener("resize", async () => {
+  if (!pdfDoc || gridMode || !pageFlip) return;
 
-  // recompute ratio and size then update
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
-  const pageRatio = vp.height / vp.width;
+  const ratio = vp.height / vp.width;
+
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
+  const isPhone = screenW < 900;
 
-  let bookWidth = screenW * 0.95;
-  let bookHeight = bookWidth * pageRatio;
-  if (bookHeight > screenH * 0.9) {
-    bookHeight = screenH * 0.9;
-    bookWidth = bookHeight / pageRatio;
+  let width = screenW * 0.95;
+  let height = width * ratio;
+
+  if (height > screenH * 0.9) {
+    height = screenH * 0.9;
+    width = height / ratio;
   }
 
-  pageFlip.update({ width: Math.round(bookWidth), height: Math.round(bookHeight) });
-  if (screenW < 1024) pageFlip.update({ mode: 'portrait' });
-  else pageFlip.update({ mode: 'book' });
+  pageFlip.update({
+    width: Math.round(width),
+    height: Math.round(height),
+    mode: isPhone ? "portrait" : "book",
+  });
 });
 
-// Keyboard nav
-document.addEventListener('keydown', (e) => {
+// ---------------- KEYBOARD ----------------
+document.addEventListener("keydown", (e) => {
   if (!pageFlip) return;
-  if (e.key === 'ArrowLeft') pageFlip.flipPrev();
-  if (e.key === 'ArrowRight') pageFlip.flipNext();
+  if (e.key === "ArrowLeft") pageFlip.flipPrev();
+  if (e.key === "ArrowRight") pageFlip.flipNext();
 });
