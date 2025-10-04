@@ -1,241 +1,73 @@
 :root {
   --bg: #111;
-  --panel: #1c1c1c;
+  --panel: #222;
   --muted: #aaa;
   --accent: #00cc88;
 }
+* { box-sizing: border-box; }
+html,body { height:100%; margin:0; padding:0; background:var(--bg); color:#fff; font-family:Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+a { color: inherit; }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body {
-  height: 100%;
-  width: 100%;
-  background: var(--bg);
-  color: #fff;
-  font-family: "Inter", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
-
-/* ---------- Navbar ---------- */
+/* Navbar */
 .navbar {
   background: var(--panel);
-  padding: 10px 12px;
+  padding: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   position: sticky;
-  top: 0;
-  z-index: 1000;
-  flex-wrap: wrap;
+  top:0;
+  z-index:1000;
+  flex-wrap:wrap;
 }
+.nav-controls, .nav-options { display:flex; gap:8px; align-items:center; }
+.navbar button { background:#333; border:0; color:#fff; padding:8px 12px; border-radius:8px; font-size:15px; cursor:pointer; min-height:40px; }
+#welcomeUser { margin-left:8px; color:var(--muted); font-size:13px; }
 
-.nav-controls,
-.nav-options {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.navbar button {
-  background: #333;
-  border: none;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
-  min-height: 40px;
-  transition: background 0.25s ease;
-}
-
-.navbar button:hover {
-  background: var(--accent);
-  color: #000;
-}
-
-#welcomeUser {
-  margin-left: 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* ---------- Flipbook Container ---------- */
+/* Flipbook */
 .flipbook {
-  width: 100%;
+  width:100%;
   height: calc(100vh - 68px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  overflow: hidden;
-  padding: 8px;
-  max-width: 1600px;
-  transform: translateZ(0);
-  transition: all 0.3s ease-in-out;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto;
+  overflow:hidden;
+  padding:8px;
+  max-width:1200px;
 }
 
-/* Hide raw .page elements until PageFlip renders them */
-#flipbook .page {
-  display: none;
+/* Hide raw .page nodes until PageFlip renders */
+#flipbook .page { display:none; }
+
+/* Page image */
+.page img, .pdf-page { display:block; width:100%; height:auto; border-radius:6px; }
+
+/* Loader */
+.loader-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:9999; transition:opacity .35s ease, visibility .35s ease; }
+.loader-overlay.hidden { opacity:0; pointer-events:none; visibility:hidden; }
+.spinner { width:44px; height:44px; border:5px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:12px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+#loaderText { color:#ddd; margin-top:6px; }
+
+/* Login */
+.login-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:flex; align-items:center; justify-content:center; z-index:10000; }
+.login-box { background:var(--panel); padding:22px; border-radius:12px; width:92%; max-width:360px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
+.login-box input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:0; background:#111; color:#fff; }
+.btn-row { display:flex; gap:10px; justify-content:center; margin-top:6px; }
+#loginBtn { background:var(--accent); color:#000; font-weight:600; }
+#signupBtn { background:#3498db; color:#fff; }
+.auth-msg { margin-top:8px; color:#f88; font-size:13px; }
+
+/* PageFlip internal block */
+#flipbook .stf__block { display:block !important; }
+
+/* Responsive */
+@media (max-width:900px) {
+  .flipbook { height: calc(100vh - 110px); padding:6px; }
+  .navbar button { font-size:14px; padding:8px 10px; }
 }
-
-/* Page Styling */
-.page img,
-.pdf-page {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  background: #000;
-}
-
-/* ---------- Loader ---------- */
-.loader-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  z-index: 9999;
-  transition: opacity 0.35s ease, visibility 0.35s ease;
-}
-
-.loader-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.spinner {
-  width: 44px;
-  height: 44px;
-  border: 5px solid #333;
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-#loaderText {
-  color: #ddd;
-  margin-top: 6px;
-}
-
-/* ---------- Login Overlay ---------- */
-.login-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.login-box {
-  background: var(--panel);
-  padding: 24px;
-  border-radius: 12px;
-  width: 92%;
-  max-width: 360px;
-  text-align: center;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-}
-
-.login-box h2 {
-  margin-bottom: 12px;
-  font-size: 20px;
-  color: #fff;
-}
-
-.login-box input {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: none;
-  background: #111;
-  color: #fff;
-  font-size: 14px;
-}
-
-.btn-row {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 6px;
-}
-
-#loginBtn {
-  background: var(--accent);
-  color: #000;
-  font-weight: 600;
-}
-
-#signupBtn {
-  background: #3498db;
-  color: #fff;
-}
-
-.auth-msg {
-  margin-top: 8px;
-  color: #f88;
-  font-size: 13px;
-}
-
-/* ---------- PageFlip Internal Fix ---------- */
-#flipbook .stf__block {
-  display: block !important;
-}
-
-/* ---------- Responsive Layout ---------- */
-
-/* Phones - single page mode */
-@media (max-width: 900px) {
-  .flipbook {
-    height: calc(100vh - 110px);
-    padding: 6px;
-  }
-
-  .navbar button {
-    font-size: 14px;
-    padding: 8px 10px;
-  }
-
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-}
-
-/* Tablets - two-page view but tighter layout */
-@media (min-width: 900px) and (max-width: 1280px) {
-  .flipbook {
-    height: calc(100vh - 90px);
-    max-width: 1400px;
-  }
-}
-
-/* Desktops - full two-page layout */
-@media (min-width: 1280px) {
-  .flipbook {
-    height: calc(100vh - 80px);
-    max-width: 1600px;
-  }
+@media (max-width:480px) {
+  .flipbook { height: calc(100vh - 120px); padding:4px; }
 }
