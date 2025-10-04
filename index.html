@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flipbook Viewer</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+
+  <!-- StPageFlip -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.css" />
+  <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+      <h2>Login / Sign Up</h2>
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+      <button id="signupBtn">Sign Up</button>
+      <p id="authMessage"></p>
+    </div>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay">
+    <div class="loader-content">
+      <div class="spinner"></div>
+      <div id="loaderText">Loading your book...</div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <button id="prevPage">⬅ Prev</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage">Next ➡</button>
+    <button id="fullscreen">⛶</button>
+    <button id="soundToggle">🔊</button>
+    <span id="welcomeUser"></span>
+    <button id="logoutBtn" style="display:none;">Logout</button>
+  </nav>
+
+  <!-- Flipbook container -->
+  <div id="flipbook" class="flipbook"></div>
+
+  <!-- Flip Sound -->
+  <audio id="flipSound" src="page-flip.wav"></audio>
+
+  <!-- Main Script -->
+  <script src="script.js"></script>
+</body>
+</html>
