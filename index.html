@@ -4,15 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>FlipBook By NSA</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#111" />
+  <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
   <!-- PDF.js -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
 
-  <!-- StPageFlip -->
+  <!-- PageFlip -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
 
@@ -20,8 +24,10 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
+  <!-- App script -->
   <script defer src="script.js"></script>
 
+  <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -33,42 +39,49 @@
   </script>
 </head>
 <body>
-  <div id="loginOverlay" class="login-overlay">
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay" role="dialog" aria-modal="true">
     <div class="login-box">
       <h2>Login / Sign Up</h2>
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
+      <input id="email" type="email" placeholder="Email" aria-label="Email" />
+      <input id="password" type="password" placeholder="Password" aria-label="Password" />
       <div class="btn-row">
         <button id="loginBtn">Login</button>
         <button id="signupBtn">Sign Up</button>
       </div>
-      <p id="authMessage"></p>
+      <p id="authMessage" class="auth-msg" aria-live="polite"></p>
     </div>
   </div>
 
-  <div id="loader" class="loader-overlay hidden">
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay hidden" aria-hidden="true">
     <div class="loader-content">
-      <div class="spinner"></div>
+      <div class="spinner" role="status" aria-hidden="true"></div>
       <div id="loaderText">Loading your book...</div>
     </div>
   </div>
 
-  <nav class="navbar">
+  <!-- Navbar -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-controls">
-      <button id="prevPage">⬅ Prev</button>
-      <span id="pageInfo"></span>
-      <button id="nextPage">Next ➡</button>
+      <button id="prevPage" aria-label="Previous page">⬅ Prev</button>
+      <span id="pageInfo" aria-live="polite">— / —</span>
+      <button id="nextPage" aria-label="Next page">Next ➡</button>
     </div>
+
     <div class="nav-options">
-      <button id="fullscreen">⛶</button>
-      <button id="soundToggle">🔊</button>
-      <span id="welcomeUser"></span>
+      <button id="gridToggle" aria-pressed="false">🗂️ Grid</button>
+      <button id="fullscreen" aria-label="Toggle fullscreen">⛶</button>
+      <button id="soundToggle" aria-label="Toggle sound">🔊</button>
+      <span id="welcomeUser" class="welcome-user" aria-hidden="true"></span>
       <button id="logoutBtn" style="display:none;">Logout</button>
     </div>
   </nav>
 
+  <!-- Flipbook container -->
   <main id="flipbook" class="flipbook" role="main" aria-label="Flipbook container"></main>
 
+  <!-- Flip sound -->
   <audio id="flipSound" src="page-flip.wav" preload="auto"></audio>
 </body>
 </html>
