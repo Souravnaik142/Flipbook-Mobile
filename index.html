@@ -1,57 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FlipBook By NSA</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <meta charset="UTF-8">
+  <title>FlipBook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
 <body>
   <!-- Loader -->
-  <div id="loader" class="loader"><span id="loaderText">Loading...</span></div>
+  <div id="loader" class="loader-overlay">
+    <div class="spinner"></div>
+    <div id="loaderText">Loading...</div>
+  </div>
 
-  <!-- Login Overlay -->
-  <div id="loginOverlay" class="overlay">
-    <div class="authBox">
-      <h2>🔐 Login to FlipBook</h2>
-      <input id="email" type="email" placeholder="Email" />
-      <input id="password" type="password" placeholder="Password" />
-      <button id="loginBtn">Login</button>
-      <button id="signupBtn">Sign Up</button>
-      <p id="authMessage"></p>
+  <!-- Login -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+      <h2>🔒 Login to FlipBook</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <div class="btn-row">
+        <button id="loginBtn">Login</button>
+        <button id="signupBtn">Sign Up</button>
+      </div>
+      <div id="authMsg" class="auth-msg"></div>
     </div>
   </div>
 
-  <!-- Header -->
-  <header class="topbar">
-    <span id="welcomeUser"></span>
-    <div class="controls">
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="nav-controls">
       <button id="prevPage">⬅</button>
       <button id="nextPage">➡</button>
-      <button id="fullscreen">⛶</button>
-      <button id="soundToggle">🔊</button>
-      <button id="logoutBtn" style="display:none;">Logout</button>
-      <span id="pageInfo"></span>
+      <button id="fullscreenBtn">⛶</button>
+      <button id="soundBtn">🔊</button>
     </div>
-  </header>
+    <div class="nav-options">
+      <span id="welcomeUser"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </div>
 
-  <!-- FlipBook -->
+  <!-- Flipbook -->
   <div id="flipbook" class="flipbook"></div>
 
-  <!-- Sound -->
-  <audio id="flipSound" src="page-flip.wav" preload="auto"></audio>
-
   <script src="script.js"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js");
-    }
-  </script>
 </body>
 </html>
