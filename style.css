@@ -250,3 +250,49 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') pageFlip.flipPrev();
   if (e.key === 'ArrowRight') pageFlip.flipNext();
 });
+/* ---------- Realistic Book Effect (Optional) ---------- */
+.flipbook {
+  perspective: 2000px;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0b0b0b 100%);
+  border-radius: 10px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Page shadows and soft edges */
+.page img,
+.pdf-page {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.05));
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.5);
+  transform-origin: center left;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* When flipping */
+.stf__item--hard {
+  background-color: #222 !important;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Right-side page highlight */
+.stf__page--right {
+  box-shadow:
+    inset -5px 0 10px rgba(0, 0, 0, 0.3),
+    5px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Left-side page shading */
+.stf__page--left {
+  box-shadow:
+    inset 5px 0 10px rgba(0, 0, 0, 0.3),
+    -5px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Subtle 3D tilt on hover (desktop only) */
+@media (hover: hover) and (pointer: fine) {
+  .flipbook:hover {
+    transform: rotateY(-1deg) scale(1.01);
+  }
+}
