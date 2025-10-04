@@ -1,6 +1,6 @@
-// FlipBook By NSA — Optimized Responsive Version (with Resize Fix)
+// FlipBook By NSA — Optimized Responsive Version (with Mobile Single Page Fix)
 
-// pdf.js worker (safe to set early)
+// pdf.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
 
@@ -39,7 +39,7 @@ let pageCount = 0;
 let soundOn = true;
 let pagesCache = [];
 
-// Auth Handlers
+// ------------------------ AUTH HANDLERS ------------------------
 loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -48,6 +48,7 @@ loginBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
+
 signupBtn.addEventListener("click", async () => {
   try {
     await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -56,6 +57,7 @@ signupBtn.addEventListener("click", async () => {
     authMessage.textContent = err.message;
   }
 });
+
 logoutBtn.addEventListener("click", async () => {
   await auth.signOut();
   location.reload();
@@ -74,7 +76,7 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// Initialize PDF and render pages
+// ------------------------ PDF INITIALIZATION ------------------------
 async function initializeFlipbook() {
   try {
     showLoader("Preparing book...");
@@ -88,7 +90,9 @@ async function initializeFlipbook() {
     for (let i = 1; i <= pageCount; i++) {
       loaderText.textContent = `Rendering page ${i} of ${pageCount}...`;
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.6 : 1.2 });
+      const viewport = page.getViewport({
+        scale: window.devicePixelRatio > 1 ? 1.6 : 1.2,
+      });
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       canvas.width = viewport.width;
@@ -116,137 +120,96 @@ async function initializeFlipbook() {
   }
 }
 
-// Init PageFlip
+// ------------------------ PAGE FLIP INIT ------------------------
 async function initPageFlip() {
   if (pageFlip && typeof pageFlip.destroy === "function") {
-    try { pageFlip.destroy(); } catch (e) {}
+    try {
+      pageFlip.destroy();
+    } catch (e) {}
     pageFlip = null;
   }
 
-  // detect page ratio
-  const firstPage = await pdfDoc.getPage(1);
-  const vp = firstPage.getViewport({ scale: 1 });
-  const pageRatio = vp.height / vp.width;
-
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  const isPhone = screenW < 900;
-  const isTablet = screenW >= 900 && screenW < 1280;
-  const isDesktop = screenW >= 1280;
-
-  let bookWidth = screenW * 0.95;
-  let bookHeight = bookWidth * pageRatio;
-  if (bookHeight > screenH * 0.9) {
-    bookHeight = screenH * 0.9;
-    bookWidth = bookHeight / pageRatio;
-  }
+  const isMobile = window.innerWidth <= 768;
 
   pageFlip = new St.PageFlip(flipbookEl, {
-    width: Math.round(bookWidth),
-    height: Math.round(bookHeight),
+    width: isMobile ? window.innerWidth - 20 : 800,
+    height: isMobile ? window.innerHeight - 80 : 600,
     size: "stretch",
-    minWidth: 200,
-    maxWidth: 1800,
-    minHeight: 240,
-    maxHeight: 2000,
+    minWidth: 300,
+    maxWidth: 1600,
+    minHeight: 400,
+    maxHeight: 1200,
+    drawShadow: true,
+    flippingTime: 700,
+    usePortrait: true,
     showCover: true,
     mobileScrollSupport: false,
-    maxShadowOpacity: 0.45,
-    usePortrait: true,
-    mode: isPhone ? "portrait" : "book",
+    singlePageMode: isMobile, // ✅ Only single page on mobile
+    startPage: 1,
   });
 
   pageFlip.loadFromHTML(document.querySelectorAll(".page"));
-  pageInfo.textContent = `1 / ${pageCount}`;
+  updatePageInfo();
+  bindControls();
 
-  pageFlip.on("flip", (e) => {
-    pageInfo.textContent = `${e.data + 1} / ${pageCount}`;
-    if (soundOn) flipSound.play().catch(() => {});
+  // Responsive resize
+  window.addEventListener("resize", handleResize);
+}
+
+// ------------------------ RESIZE HANDLER ------------------------
+function handleResize() {
+  if (!pageFlip) return;
+  const isMobile = window.innerWidth <= 768;
+
+  pageFlip.update({
+    width: isMobile ? window.innerWidth - 20 : 800,
+    height: isMobile ? window.innerHeight - 80 : 600,
+    singlePageMode: isMobile,
   });
 
-  bindControls();
-  addSwipeGestures(pageFlip);
+  flipbookEl.style.height = `${window.innerHeight - 68}px`;
 }
 
+// ------------------------ NAVIGATION ------------------------
 function bindControls() {
-  document.getElementById("nextPage").onclick = () => pageFlip && pageFlip.flipNext();
-  document.getElementById("prevPage").onclick = () => pageFlip && pageFlip.flipPrev();
-  document.getElementById("fullscreen").onclick = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen();
-  };
-  document.getElementById("soundToggle").onclick = () => {
+  document.getElementById("prevPage").addEventListener("click", () => {
+    pageFlip.flipPrev();
+    if (soundOn) flipSound.play();
+  });
+
+  document.getElementById("nextPage").addEventListener("click", () => {
+    pageFlip.flipNext();
+    if (soundOn) flipSound.play();
+  });
+
+  document.getElementById("fullscreen").addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  document.getElementById("soundToggle").addEventListener("click", () => {
     soundOn = !soundOn;
     document.getElementById("soundToggle").textContent = soundOn ? "🔊" : "🔇";
-  };
+  });
+
+  pageFlip.on("flip", (e) => updatePageInfo(e.data));
 }
 
-function addSwipeGestures(flipInst) {
-  let startX = 0, startY = 0, startTime = 0;
-  flipbookEl.addEventListener('touchstart', (e) => {
-    const t = e.changedTouches[0];
-    startX = t.clientX; startY = t.clientY; startTime = Date.now();
-  }, { passive: true });
-
-  flipbookEl.addEventListener('touchend', (e) => {
-    const t = e.changedTouches[0];
-    const dx = t.clientX - startX; const dy = t.clientY - startY;
-    const dt = Date.now() - startTime;
-    if (Math.abs(dx) > 50 && Math.abs(dy) < 80 && dt < 700) {
-      if (dx > 0) flipInst.flipPrev();
-      else flipInst.flipNext();
-      if (soundOn) flipSound.play().catch(()=>{});
-    }
-  }, { passive: true });
+function updatePageInfo(pageNum) {
+  const current = pageNum || pageFlip.getCurrentPageIndex() + 1;
+  const total = pageFlip.getPageCount();
+  pageInfo.textContent = `${current} / ${total}`;
 }
 
+// ------------------------ LOADER HELPERS ------------------------
 function showLoader(text) {
-  loader.classList.remove('hidden');
-  const lt = document.getElementById('loaderText');
-  if (lt) lt.textContent = text || 'Loading...';
+  loader.classList.remove("hidden");
+  loaderText.textContent = text || "Loading...";
 }
+
 function hideLoader() {
-  loader.classList.add('hidden');
+  loader.classList.add("hidden");
 }
-
-// ✅ Fixed Resize Handler (prevents blank screen)
-let resizeTimeout;
-window.addEventListener("resize", async () => {
-  if (!pdfDoc || !pageFlip) return;
-
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(async () => {
-    const firstPage = await pdfDoc.getPage(1);
-    const vp = firstPage.getViewport({ scale: 1 });
-    const ratio = vp.height / vp.width;
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-
-    const isPhone = screenW < 900;
-    const isTablet = screenW >= 900 && screenW < 1280;
-    const isDesktop = screenW >= 1280;
-
-    let width = screenW * 0.95;
-    let height = width * ratio;
-    if (height > screenH * 0.9) {
-      height = screenH * 0.9;
-      width = height / ratio;
-    }
-
-    pageFlip.update({
-      width: Math.round(width),
-      height: Math.round(height),
-      mode: isPhone ? "portrait" : "book",
-    });
-
-    // 👇 Force re-render to fix blank screen on maximize
-    pageFlip.render();
-  }, 300);
-});
-
-// keyboard navigation
-document.addEventListener('keydown', (e) => {
-  if (!pageFlip) return;
-  if (e.key === 'ArrowLeft') pageFlip.flipPrev();
-  if (e.key === 'ArrowRight') pageFlip.flipNext();
-});
