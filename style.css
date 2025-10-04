@@ -64,3 +64,34 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);color:#fff;font-fa
 #flipbook .stf__block {
   display: block !important;
 }
+/* ✅ Grid View styling */
+.grid-view {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(45%, 1fr));
+  gap: 12px;
+  padding: 10px;
+  overflow-y: auto;
+}
+.grid-item {
+  background: #fff;
+  color: #000;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.grid-item:hover {
+  transform: scale(1.03);
+}
+.grid-item img {
+  width: 100%;
+  height: auto;
+  border-bottom: 1px solid #ddd;
+  border-radius: 8px 8px 0 0;
+}
+.grid-item p {
+  padding: 6px 0;
+  font-weight: bold;
+}
+
