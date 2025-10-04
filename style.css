@@ -41,7 +41,7 @@ a { color: inherit; }
 /* Hide raw .page nodes until PageFlip renders */
 #flipbook .page { display:none; }
 
-/* Page/thumbnail styling (fallback) */
+/* Page styling */
 .page img, .pdf-page { display:block; width:100%; height:auto; border-radius:6px; }
 
 /* Loader */
@@ -54,20 +54,4 @@ a { color: inherit; }
 /* Login */
 .login-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:flex; align-items:center; justify-content:center; z-index:10000; }
 .login-box { background:var(--panel); padding:22px; border-radius:12px; width:92%; max-width:360px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
-.login-box input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:0; background:#111; color:#fff; }
-.btn-row { display:flex; gap:10px; justify-content:center; margin-top:6px; }
-#loginBtn { background:var(--accent); color:#000; font-weight:600; }
-#signupBtn { background:#3498db; color:#fff; }
-.auth-msg { margin-top:8px; color:#f88; font-size:13px; }
-
-/* PageFlip internal block visibility */
-#flipbook .stf__block { display:block !important; }
-
-/* Responsive */
-@media (max-width:900px) {
-  .flipbook { height: calc(100vh - 110px); padding:6px; }
-  .navbar button { font-size:14px; padding:8px 10px; }
-}
-@media (max-width:480px) {
-  .flipbook { height: calc(100vh - 120px); padding:4px; }
-}
+.login-box input { width:100%; padding:10px; margin:8px 0; border-radius:8
