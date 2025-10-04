@@ -1,6 +1,6 @@
-// FlipBook By NSA — Optimized Responsive Version (with Resize Fix)
+// FlipBook By NSA — Enhanced Responsive Version (Auto single/double view)
 
-// pdf.js worker (safe to set early)
+// pdf.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
 
@@ -39,7 +39,7 @@ let pageCount = 0;
 let soundOn = true;
 let pagesCache = [];
 
-// Auth Handlers
+// Auth handlers
 loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -74,7 +74,7 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// Initialize PDF and render pages
+// Initialize PDF
 async function initializeFlipbook() {
   try {
     showLoader("Preparing book...");
@@ -116,6 +116,14 @@ async function initializeFlipbook() {
   }
 }
 
+// Determine mode based on screen width
+function getViewMode() {
+  const width = window.innerWidth;
+  if (width < 900) return "portrait"; // phones — single
+  if (width < 1200) return "book";    // tablets — double
+  return "book";                      // desktops — double
+}
+
 // Init PageFlip
 async function initPageFlip() {
   if (pageFlip && typeof pageFlip.destroy === "function") {
@@ -123,7 +131,6 @@ async function initPageFlip() {
     pageFlip = null;
   }
 
-  // detect page ratio
   const firstPage = await pdfDoc.getPage(1);
   const vp = firstPage.getViewport({ scale: 1 });
   const pageRatio = vp.height / vp.width;
@@ -131,8 +138,6 @@ async function initPageFlip() {
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
   const isPhone = screenW < 900;
-  const isTablet = screenW >= 900 && screenW < 1280;
-  const isDesktop = screenW >= 1280;
 
   let bookWidth = screenW * 0.95;
   let bookHeight = bookWidth * pageRatio;
@@ -146,14 +151,14 @@ async function initPageFlip() {
     height: Math.round(bookHeight),
     size: "stretch",
     minWidth: 200,
-    maxWidth: 1800,
+    maxWidth: 1600,
     minHeight: 240,
     maxHeight: 2000,
     showCover: true,
     mobileScrollSupport: false,
     maxShadowOpacity: 0.45,
     usePortrait: true,
-    mode: isPhone ? "portrait" : "book",
+    mode: getViewMode(), // auto decide
   });
 
   pageFlip.loadFromHTML(document.querySelectorAll(".page"));
@@ -168,11 +173,12 @@ async function initPageFlip() {
   addSwipeGestures(pageFlip);
 }
 
+// Controls
 function bindControls() {
-  document.getElementById("nextPage").onclick = () => pageFlip && pageFlip.flipNext();
-  document.getElementById("prevPage").onclick = () => pageFlip && pageFlip.flipPrev();
+  document.getElementById("nextPage").onclick = () => pageFlip?.flipNext();
+  document.getElementById("prevPage").onclick = () => pageFlip?.flipPrev();
   document.getElementById("fullscreen").onclick = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
     else document.exitFullscreen();
   };
   document.getElementById("soundToggle").onclick = () => {
@@ -181,6 +187,7 @@ function bindControls() {
   };
 }
 
+// Swipe support
 function addSwipeGestures(flipInst) {
   let startX = 0, startY = 0, startTime = 0;
   flipbookEl.addEventListener('touchstart', (e) => {
@@ -200,51 +207,40 @@ function addSwipeGestures(flipInst) {
   }, { passive: true });
 }
 
+// Loader UI
 function showLoader(text) {
   loader.classList.remove('hidden');
-  const lt = document.getElementById('loaderText');
-  if (lt) lt.textContent = text || 'Loading...';
+  if (loaderText) loaderText.textContent = text || 'Loading...';
 }
 function hideLoader() {
   loader.classList.add('hidden');
 }
 
-// ✅ Fixed Resize Handler (prevents blank screen)
+// Responsive: auto re-render on resize (debounced)
 let resizeTimeout;
-window.addEventListener("resize", async () => {
-  if (!pdfDoc || !pageFlip) return;
-
+window.addEventListener("resize", () => {
   clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(async () => {
-    const firstPage = await pdfDoc.getPage(1);
-    const vp = firstPage.getViewport({ scale: 1 });
-    const ratio = vp.height / vp.width;
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-
-    const isPhone = screenW < 900;
-    const isTablet = screenW >= 900 && screenW < 1280;
-    const isDesktop = screenW >= 1280;
-
-    let width = screenW * 0.95;
-    let height = width * ratio;
-    if (height > screenH * 0.9) {
-      height = screenH * 0.9;
-      width = height / ratio;
+  resizeTimeout = setTimeout(() => {
+    if (!pdfDoc) return;
+    const newMode = getViewMode();
+    if (pageFlip && pageFlip.getSettings().mode !== newMode) {
+      initPageFlip(); // re-init only if mode changes
+    } else if (pageFlip) {
+      const firstPagePromise = pdfDoc.getPage(1).then(p => {
+        const vp = p.getViewport({ scale: 1 });
+        const ratio = vp.height / vp.width;
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+        let width = screenW * 0.95;
+        let height = width * ratio;
+        if (height > screenH * 0.9) { height = screenH * 0.9; width = height / ratio; }
+        pageFlip.update({ width: Math.round(width), height: Math.round(height) });
+      });
     }
-
-    pageFlip.update({
-      width: Math.round(width),
-      height: Math.round(height),
-      mode: isPhone ? "portrait" : "book",
-    });
-
-    // 👇 Force re-render to fix blank screen on maximize
-    pageFlip.render();
-  }, 300);
+  }, 350);
 });
 
-// keyboard navigation
+// Keyboard navigation
 document.addEventListener('keydown', (e) => {
   if (!pageFlip) return;
   if (e.key === 'ArrowLeft') pageFlip.flipPrev();
