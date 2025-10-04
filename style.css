@@ -1,298 +1,241 @@
-// FlipBook By NSA — Optimized Responsive Version (with Resize Fix)
-
-// pdf.js worker (safe to set early)
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBzEhgiJXph4CbXBBwxcNU3MjDCHc0rWZo",
-  authDomain: "flipbook-7540.firebaseapp.com",
-  projectId: "flipbook-7540",
-  storageBucket: "flipbook-7540.firebasestorage.app",
-  messagingSenderId: "430421789223",
-  appId: "1:430421789223:web:fdca22655543a637bf9c02",
-  measurementId: "G-2T9KF0DXL5",
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-// Elements
-const loginOverlay = document.getElementById("loginOverlay");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const signupBtn = document.getElementById("signupBtn");
-const authMessage = document.getElementById("authMessage");
-const loader = document.getElementById("loader");
-const loaderText = document.getElementById("loaderText");
-const welcomeUser = document.getElementById("welcomeUser");
-const logoutBtn = document.getElementById("logoutBtn");
-const flipSound = document.getElementById("flipSound");
-const pageInfo = document.getElementById("pageInfo");
-const flipbookEl = document.getElementById("flipbook");
-
-let pageFlip = null;
-let pdfDoc = null;
-let pageCount = 0;
-let soundOn = true;
-let pagesCache = [];
-
-// Auth Handlers
-loginBtn.addEventListener("click", async () => {
-  try {
-    await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
-    authMessage.textContent = "";
-  } catch (err) {
-    authMessage.textContent = err.message;
-  }
-});
-signupBtn.addEventListener("click", async () => {
-  try {
-    await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
-    authMessage.textContent = "Account created. Please log in.";
-  } catch (err) {
-    authMessage.textContent = err.message;
-  }
-});
-logoutBtn.addEventListener("click", async () => {
-  await auth.signOut();
-  location.reload();
-});
-
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    loginOverlay.style.display = "none";
-    logoutBtn.style.display = "inline-block";
-    welcomeUser.textContent = `👋 ${user.email}`;
-    initializeFlipbook();
-  } else {
-    loginOverlay.style.display = "flex";
-    logoutBtn.style.display = "none";
-    welcomeUser.textContent = "";
-  }
-});
-
-// Initialize PDF and render pages
-async function initializeFlipbook() {
-  try {
-    showLoader("Preparing book...");
-    const loadingTask = pdfjsLib.getDocument("yourcourse.pdf");
-    pdfDoc = await loadingTask.promise;
-    pageCount = pdfDoc.numPages;
-    pagesCache = [];
-
-    flipbookEl.innerHTML = "";
-
-    for (let i = 1; i <= pageCount; i++) {
-      loaderText.textContent = `Rendering page ${i} of ${pageCount}...`;
-      const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: window.devicePixelRatio > 1 ? 1.6 : 1.2 });
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-      pagesCache.push(dataUrl);
-
-      const pageDiv = document.createElement("div");
-      pageDiv.className = "page";
-      const img = document.createElement("img");
-      img.className = "pdf-page";
-      img.src = dataUrl;
-      img.alt = `Page ${i}`;
-      pageDiv.appendChild(img);
-      flipbookEl.appendChild(pageDiv);
-    }
-
-    await initPageFlip();
-    hideLoader();
-  } catch (err) {
-    hideLoader();
-    console.error(err);
-    alert("Error loading PDF: " + (err.message || err));
-  }
+:root {
+  --bg: #111;
+  --panel: #1c1c1c;
+  --muted: #aaa;
+  --accent: #00cc88;
 }
 
-// Init PageFlip
-async function initPageFlip() {
-  if (pageFlip && typeof pageFlip.destroy === "function") {
-    try { pageFlip.destroy(); } catch (e) {}
-    pageFlip = null;
-  }
-
-  // detect page ratio
-  const firstPage = await pdfDoc.getPage(1);
-  const vp = firstPage.getViewport({ scale: 1 });
-  const pageRatio = vp.height / vp.width;
-
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  const isPhone = screenW < 900;
-  const isTablet = screenW >= 900 && screenW < 1280;
-  const isDesktop = screenW >= 1280;
-
-  let bookWidth = screenW * 0.95;
-  let bookHeight = bookWidth * pageRatio;
-  if (bookHeight > screenH * 0.9) {
-    bookHeight = screenH * 0.9;
-    bookWidth = bookHeight / pageRatio;
-  }
-
-  pageFlip = new St.PageFlip(flipbookEl, {
-    width: Math.round(bookWidth),
-    height: Math.round(bookHeight),
-    size: "stretch",
-    minWidth: 200,
-    maxWidth: 1800,
-    minHeight: 240,
-    maxHeight: 2000,
-    showCover: true,
-    mobileScrollSupport: false,
-    maxShadowOpacity: 0.45,
-    usePortrait: true,
-    mode: isPhone ? "portrait" : "book",
-  });
-
-  pageFlip.loadFromHTML(document.querySelectorAll(".page"));
-  pageInfo.textContent = `1 / ${pageCount}`;
-
-  pageFlip.on("flip", (e) => {
-    pageInfo.textContent = `${e.data + 1} / ${pageCount}`;
-    if (soundOn) flipSound.play().catch(() => {});
-  });
-
-  bindControls();
-  addSwipeGestures(pageFlip);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-function bindControls() {
-  document.getElementById("nextPage").onclick = () => pageFlip && pageFlip.flipNext();
-  document.getElementById("prevPage").onclick = () => pageFlip && pageFlip.flipPrev();
-  document.getElementById("fullscreen").onclick = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen();
-  };
-  document.getElementById("soundToggle").onclick = () => {
-    soundOn = !soundOn;
-    document.getElementById("soundToggle").textContent = soundOn ? "🔊" : "🔇";
-  };
+html, body {
+  height: 100%;
+  width: 100%;
+  background: var(--bg);
+  color: #fff;
+  font-family: "Inter", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
 }
 
-function addSwipeGestures(flipInst) {
-  let startX = 0, startY = 0, startTime = 0;
-  flipbookEl.addEventListener('touchstart', (e) => {
-    const t = e.changedTouches[0];
-    startX = t.clientX; startY = t.clientY; startTime = Date.now();
-  }, { passive: true });
-
-  flipbookEl.addEventListener('touchend', (e) => {
-    const t = e.changedTouches[0];
-    const dx = t.clientX - startX; const dy = t.clientY - startY;
-    const dt = Date.now() - startTime;
-    if (Math.abs(dx) > 50 && Math.abs(dy) < 80 && dt < 700) {
-      if (dx > 0) flipInst.flipPrev();
-      else flipInst.flipNext();
-      if (soundOn) flipSound.play().catch(()=>{});
-    }
-  }, { passive: true });
+/* ---------- Navbar ---------- */
+.navbar {
+  background: var(--panel);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  flex-wrap: wrap;
 }
 
-function showLoader(text) {
-  loader.classList.remove('hidden');
-  const lt = document.getElementById('loaderText');
-  if (lt) lt.textContent = text || 'Loading...';
-}
-function hideLoader() {
-  loader.classList.add('hidden');
+.nav-controls,
+.nav-options {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-// ✅ Fixed Resize Handler (prevents blank screen)
-let resizeTimeout;
-window.addEventListener("resize", async () => {
-  if (!pdfDoc || !pageFlip) return;
+.navbar button {
+  background: #333;
+  border: none;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  min-height: 40px;
+  transition: background 0.25s ease;
+}
 
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(async () => {
-    const firstPage = await pdfDoc.getPage(1);
-    const vp = firstPage.getViewport({ scale: 1 });
-    const ratio = vp.height / vp.width;
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
+.navbar button:hover {
+  background: var(--accent);
+  color: #000;
+}
 
-    const isPhone = screenW < 900;
-    const isTablet = screenW >= 900 && screenW < 1280;
-    const isDesktop = screenW >= 1280;
+#welcomeUser {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-    let width = screenW * 0.95;
-    let height = width * ratio;
-    if (height > screenH * 0.9) {
-      height = screenH * 0.9;
-      width = height / ratio;
-    }
-
-    pageFlip.update({
-      width: Math.round(width),
-      height: Math.round(height),
-      mode: isPhone ? "portrait" : "book",
-    });
-
-    // 👇 Force re-render to fix blank screen on maximize
-    pageFlip.render();
-  }, 300);
-});
-
-// keyboard navigation
-document.addEventListener('keydown', (e) => {
-  if (!pageFlip) return;
-  if (e.key === 'ArrowLeft') pageFlip.flipPrev();
-  if (e.key === 'ArrowRight') pageFlip.flipNext();
-});
-/* ---------- Realistic Book Effect (Optional) ---------- */
+/* ---------- Flipbook Container ---------- */
 .flipbook {
-  perspective: 2000px;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #0b0b0b 100%);
-  border-radius: 10px;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: calc(100vh - 68px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  overflow: hidden;
+  padding: 8px;
+  max-width: 1600px;
+  transform: translateZ(0);
+  transition: all 0.3s ease-in-out;
 }
 
-/* Page shadows and soft edges */
+/* Hide raw .page elements until PageFlip renders them */
+#flipbook .page {
+  display: none;
+}
+
+/* Page Styling */
 .page img,
 .pdf-page {
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.05));
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  background: #000;
+}
+
+/* ---------- Loader ---------- */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 9999;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.loader-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 5px solid #333;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#loaderText {
+  color: #ddd;
+  margin-top: 6px;
+}
+
+/* ---------- Login Overlay ---------- */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.login-box {
+  background: var(--panel);
+  padding: 24px;
+  border-radius: 12px;
+  width: 92%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.login-box h2 {
+  margin-bottom: 12px;
+  font-size: 20px;
+  color: #fff;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
   border-radius: 8px;
-  box-shadow:
-    inset 0 0 30px rgba(0, 0, 0, 0.25),
-    0 8px 20px rgba(0, 0, 0, 0.5);
-  transform-origin: center left;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
 }
 
-/* When flipping */
-.stf__item--hard {
-  background-color: #222 !important;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+.btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 6px;
 }
 
-/* Right-side page highlight */
-.stf__page--right {
-  box-shadow:
-    inset -5px 0 10px rgba(0, 0, 0, 0.3),
-    5px 0 15px rgba(0, 0, 0, 0.4);
+#loginBtn {
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
 }
 
-/* Left-side page shading */
-.stf__page--left {
-  box-shadow:
-    inset 5px 0 10px rgba(0, 0, 0, 0.3),
-    -5px 0 15px rgba(0, 0, 0, 0.4);
+#signupBtn {
+  background: #3498db;
+  color: #fff;
 }
 
-/* Subtle 3D tilt on hover (desktop only) */
-@media (hover: hover) and (pointer: fine) {
-  .flipbook:hover {
-    transform: rotateY(-1deg) scale(1.01);
+.auth-msg {
+  margin-top: 8px;
+  color: #f88;
+  font-size: 13px;
+}
+
+/* ---------- PageFlip Internal Fix ---------- */
+#flipbook .stf__block {
+  display: block !important;
+}
+
+/* ---------- Responsive Layout ---------- */
+
+/* Phones - single page mode */
+@media (max-width: 900px) {
+  .flipbook {
+    height: calc(100vh - 110px);
+    padding: 6px;
+  }
+
+  .navbar button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* Tablets - two-page view but tighter layout */
+@media (min-width: 900px) and (max-width: 1280px) {
+  .flipbook {
+    height: calc(100vh - 90px);
+    max-width: 1400px;
+  }
+}
+
+/* Desktops - full two-page layout */
+@media (min-width: 1280px) {
+  .flipbook {
+    height: calc(100vh - 80px);
+    max-width: 1600px;
   }
 }
