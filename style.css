@@ -1,73 +1,114 @@
-:root {
-  --bg: #111;
-  --panel: #222;
-  --muted: #aaa;
-  --accent: #00cc88;
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
 }
-* { box-sizing: border-box; }
-html,body { height:100%; margin:0; padding:0; background:var(--bg); color:#fff; font-family:Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
-a { color: inherit; }
 
-/* Navbar */
-.navbar {
-  background: var(--panel);
-  padding: 10px;
+.topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  position: sticky;
-  top:0;
-  z-index:1000;
-  flex-wrap:wrap;
+  background: #00cc88;
+  padding: 8px 12px;
+  color: #111;
+  font-weight: bold;
 }
-.nav-controls, .nav-options { display:flex; gap:8px; align-items:center; }
-.navbar button { background:#333; border:0; color:#fff; padding:8px 12px; border-radius:8px; font-size:15px; cursor:pointer; min-height:40px; }
-#welcomeUser { margin-left:8px; color:var(--muted); font-size:13px; }
 
-/* Flipbook */
+.controls button {
+  margin: 0 4px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #111;
+  color: white;
+  cursor: pointer;
+}
+.controls button:hover {
+  background: #333;
+}
+
 .flipbook {
-  width:100%;
-  height: calc(100vh - 68px);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin:0 auto;
-  overflow:hidden;
-  padding:8px;
-  max-width:1200px;
+  width: 100%;
+  height: calc(100vh - 48px);
+  margin: auto;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.flipbook.transitioning {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
 }
 
-/* Hide raw .page nodes until PageFlip renders */
-#flipbook .page { display:none; }
-
-/* Page image */
-.page img, .pdf-page { display:block; width:100%; height:auto; border-radius:6px; }
+.page {
+  background: white;
+  overflow: hidden;
+}
+.page img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.page-placeholder {
+  text-align: center;
+  color: #888;
+  padding: 40% 0;
+  font-size: 14px;
+}
 
 /* Loader */
-.loader-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:9999; transition:opacity .35s ease, visibility .35s ease; }
-.loader-overlay.hidden { opacity:0; pointer-events:none; visibility:hidden; }
-.spinner { width:44px; height:44px; border:5px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:12px; }
-@keyframes spin { to { transform:rotate(360deg); } }
-#loaderText { color:#ddd; margin-top:6px; }
-
-/* Login */
-.login-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:flex; align-items:center; justify-content:center; z-index:10000; }
-.login-box { background:var(--panel); padding:22px; border-radius:12px; width:92%; max-width:360px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
-.login-box input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:0; background:#111; color:#fff; }
-.btn-row { display:flex; gap:10px; justify-content:center; margin-top:6px; }
-#loginBtn { background:var(--accent); color:#000; font-weight:600; }
-#signupBtn { background:#3498db; color:#fff; }
-.auth-msg { margin-top:8px; color:#f88; font-size:13px; }
-
-/* PageFlip internal block */
-#flipbook .stf__block { display:block !important; }
-
-/* Responsive */
-@media (max-width:900px) {
-  .flipbook { height: calc(100vh - 110px); padding:6px; }
-  .navbar button { font-size:14px; padding:8px 10px; }
+.loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  color: #00cc88;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
 }
-@media (max-width:480px) {
-  .flipbook { height: calc(100vh - 120px); padding:4px; }
+.loader.hidden { display: none; }
+
+/* Login overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+.authBox {
+  background: #222;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+}
+.authBox input {
+  display: block;
+  width: 220px;
+  margin: 10px auto;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+}
+.authBox button {
+  margin: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #00cc88;
+  color: #111;
+  cursor: pointer;
+}
+.authBox button:hover {
+  background: #00e09f;
 }
