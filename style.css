@@ -11,7 +11,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   width: 100%;
   background: var(--bg);
@@ -192,50 +193,35 @@ html, body {
   color: #fff;
 }
 
-.auth-msg {
-  margin-top: 8px;
-  color: #f88;
-  font-size: 13px;
-}
-
-/* ---------- PageFlip Internal Fix ---------- */
-#flipbook .stf__block {
-  display: block !important;
-}
-
-/* ---------- Responsive Layout ---------- */
-
-/* Phones - single page mode */
-@media (max-width: 900px) {
-  .flipbook {
-    height: calc(100vh - 110px);
-    padding: 6px;
-  }
-
-  .navbar button {
-    font-size: 14px;
-    padding: 8px 10px;
+/* ---------- Responsive: Mobile & Tablets ---------- */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow: hidden;
   }
 
   .navbar {
     flex-direction: column;
-    align-items: flex-start;
     gap: 6px;
   }
-}
 
-/* Tablets - two-page view but tighter layout */
-@media (min-width: 900px) and (max-width: 1280px) {
-  .flipbook {
-    height: calc(100vh - 90px);
-    max-width: 1400px;
+  .nav-controls button,
+  .nav-options button {
+    padding: 6px 10px;
+    font-size: 14px;
   }
-}
 
-/* Desktops - full two-page layout */
-@media (min-width: 1280px) {
   .flipbook {
-    height: calc(100vh - 80px);
-    max-width: 1600px;
+    padding: 0;
+    height: calc(100vh - 68px);
+    max-width: 100%;
+  }
+
+  .page img,
+  .pdf-page {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: none;
   }
 }
