@@ -57,3 +57,10 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);color:#fff;font-fa
   .navbar{padding:10px;gap:6px}
   .navbar button{padding:8px 10px;font-size:14px}
 }
+/* Fix: Prevent all pages showing before flipbook init */
+#flipbook .page {
+  display: none;
+}
+#flipbook .stf__block {
+  display: block !important;
+}
